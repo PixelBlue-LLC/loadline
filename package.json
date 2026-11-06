@@ -1,0 +1,20 @@
+{
+  "name": "compass",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm -w @compass/web run dev",
+    "build": "npm -w @compass/web run build",
+    "test": "vitest run",
+    "typecheck": "tsc -p packages/core && tsc -p apps/web"
+  },
+  "devDependencies": {
+    "typescript": "5.9",
+    "vitest": "^5.1.0"
+  }
+}
