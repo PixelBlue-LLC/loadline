@@ -189,14 +189,14 @@ textarea.input { padding: 10px 12px; min-height: 96px; resize: vertical; line-he
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 .edit-list { display: flex; flex-direction: column; gap: 6px; }
-.edit-row { display: grid; grid-template-columns: 1.1fr 0.9fr 1fr 1fr 1.1fr 44px; gap: 6px; align-items: center; }
+.edit-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr 44px; gap: 6px; align-items: center; }
 .edit-row .input { min-height: 40px; padding: 0 8px; font-size: 14px; }
 .edit-head { font-size: 12px; color: var(--muted); }
 .cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .cell-label { display: none; font-size: 11px; color: var(--muted); }
 @media (max-width: 640px) {
   .edit-head { display: none; }
-  .edit-row { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 10px 0; border-bottom: 1px solid var(--line2); align-items: end; }
+  .edit-row { grid-template-columns: 1.2fr 1fr 1fr 40px; padding: 10px 0; border-bottom: 1px solid var(--line2); align-items: end; }
   .cell-label { display: block; }
   .edit-row .del { justify-self: end; }
 }
@@ -206,3 +206,19 @@ textarea.input { padding: 10px 12px; min-height: 96px; resize: vertical; line-he
 .bubble.ai { align-self: flex-start; background: var(--card); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (min-width: 900px) { .mobile-only { display: none; } }
+
+/* 账户 */
+.seg { display: inline-flex; align-self: flex-start; border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 3px; background: var(--card); }
+.seg button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap; }
+.seg button.on { background: var(--chip); color: var(--ink); font-weight: 600; }
+.acct-head { display: flex; flex-direction: column; gap: 2px; padding: 8px 6px 0; }
+.chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.acct-chip { border: 1px solid var(--line); background: transparent; color: var(--body); font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.acct-chip.on { background: var(--me); color: var(--me-text); border-color: var(--me); font-weight: 600; }
+.acct-chip.add { border-style: dashed; color: var(--muted); }
+.import-dialog { border: 2px solid var(--accent); }
+.choice { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.choice legend { font-size: 14px; font-weight: 600; margin-bottom: 4px; padding: 0; }
+.choice label { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.choice label input { margin-top: 4px; }
+.choice em { display: block; font-style: normal; font-size: 12px; color: var(--muted); }

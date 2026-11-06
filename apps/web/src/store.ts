@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { DEFAULT_RULES, type ConcentrationRule, type Holding, type NewsItem, type Quote, type SectorPerf } from 'loadline-core';
+import { DEFAULT_ACCOUNT, DEFAULT_RULES, type CashByAccount, type ConcentrationRule, type Holding, type NewsItem, type Quote, type SectorPerf } from 'loadline-core';
 
 export type ThemePref = 'system' | 'light' | 'dark';
 
@@ -11,6 +11,8 @@ export interface Settings {
   /** us = 绿涨红跌，cn = 红涨绿跌 */
   colorConvention: 'us' | 'cn';
   rules: ConcentrationRule[];
+  /** 多个账户时：merged = 同一只股票合成一条，split = 按账户分开 */
+  accountView: 'merged' | 'split';
 }
 
 export interface MarketCache {
@@ -19,6 +21,8 @@ export interface MarketCache {
   news: NewsItem[];
   /** 代码 → YYYY-MM-DD */
   earnings: Record<string, string>;
+  /** 代码 → Finnhub 行业（ETF 等没有的记成空串，避免重复请求） */
+  industries: Record<string, string>;
   fetchedAt?: string;
   errors: string[];
 }
@@ -30,7 +34,8 @@ export interface ChatMessage {
 
 export interface AppState {
   holdings: Holding[];
-  cash: number;
+  /** 每个账户的现金 */
+  cashByAccount: CashByAccount;
   settings: Settings;
   market: MarketCache;
   checklist: Record<string, string>;
@@ -51,9 +56,10 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   colorConvention: 'us',
   rules: DEFAULT_RULES,
+  accountView: 'merged',
 };
 
-const EMPTY_MARKET: MarketCache = { quotes: {}, sectors: [], news: [], earnings: {}, errors: [] };
+const EMPTY_MARKET: MarketCache = { quotes: {}, sectors: [], news: [], earnings: {}, industries: {}, errors: [] };
 
 const OLD_DEFAULT_MODELS = ['claude-haiku-4-5'];
 
@@ -62,14 +68,18 @@ function migrateSettings(s: Settings): Settings {
 }
 
 function load(): AppState {
-  const base: AppState = { holdings: [], cash: 0, settings: DEFAULT_SETTINGS, market: EMPTY_MARKET, checklist: {}, chat: [], loading: false };
+  const base: AppState = { holdings: [], cashByAccount: {}, settings: DEFAULT_SETTINGS, market: EMPTY_MARKET, checklist: {}, chat: [], loading: false };
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return base;
-    const saved = JSON.parse(raw) as Partial<AppState>;
+    const saved = JSON.parse(raw) as Partial<AppState> & { cash?: number };
+    // 旧版只有一个总现金
+    const legacyCash: CashByAccount = typeof saved.cash === 'number' && saved.cash > 0 ? { [DEFAULT_ACCOUNT]: saved.cash } : {};
+    const { cash: _legacy, ...rest } = saved;
     return {
       ...base,
-      ...saved,
+      ...rest,
+      cashByAccount: saved.cashByAccount ?? legacyCash,
       settings: migrateSettings({ ...DEFAULT_SETTINGS, ...saved.settings }),
       market: { ...EMPTY_MARKET, ...saved.market },
       loading: false,
@@ -118,17 +128,17 @@ export function useAppState(): AppState {
 
 /** 导出备份：持仓、现金、设置（可选是否带 key） */
 export function exportBackup(includeKeys: boolean): string {
-  const { holdings, cash, settings, checklist } = state;
+  const { holdings, cashByAccount, settings, checklist } = state;
   const s = includeKeys ? settings : { ...settings, finnhubKey: '', anthropicKey: '' };
-  return JSON.stringify({ app: 'loadline', version: 1, exportedAt: new Date().toISOString(), holdings, cash, settings: s, checklist }, null, 2);
+  return JSON.stringify({ app: 'loadline', version: 2, exportedAt: new Date().toISOString(), holdings, cashByAccount, settings: s, checklist }, null, 2);
 }
 
 export function importBackup(text: string): void {
-  const data = JSON.parse(text) as Partial<AppState> & { app?: string };
+  const data = JSON.parse(text) as Partial<AppState> & { app?: string; cash?: number };
   if (data.app !== 'loadline' || !Array.isArray(data.holdings)) throw new Error('不是有效的备份文件');
   setState((s) => ({
     holdings: data.holdings ?? [],
-    cash: typeof data.cash === 'number' ? data.cash : 0,
+    cashByAccount: data.cashByAccount ?? (typeof data.cash === 'number' && data.cash > 0 ? { [DEFAULT_ACCOUNT]: data.cash } : {}),
     settings: { ...s.settings, ...data.settings, finnhubKey: data.settings?.finnhubKey || s.settings.finnhubKey, anthropicKey: data.settings?.anthropicKey || s.settings.anthropicKey },
     checklist: data.checklist ?? {},
     market: EMPTY_MARKET,
@@ -139,12 +149,12 @@ export function importBackup(text: string): void {
 
 /** 用示例持仓看效果 */
 export function loadSample() {
-  setState({ holdings: SAMPLE.holdings, cash: SAMPLE.cash, isSample: true, attribution: undefined, chat: [] });
+  setState({ holdings: SAMPLE.holdings, cashByAccount: { [DEFAULT_ACCOUNT]: SAMPLE.cash }, isSample: true, attribution: undefined, chat: [] });
 }
 
 /** 退出示例：清掉示例持仓和由它算出的内容，保留设置和 key */
 export function exitSample() {
-  setState({ holdings: [], cash: 0, isSample: false, attribution: undefined, chat: [], checklist: {} });
+  setState({ holdings: [], cashByAccount: {}, isSample: false, attribution: undefined, chat: [], checklist: {} });
 }
 
 export function clearAll() {
@@ -155,6 +165,7 @@ export function clearAll() {
 
 /** 示例持仓：虚构数据，方便第一次打开时看效果 */
 export const SAMPLE: { holdings: Holding[]; cash: number } = {
+  // 示例没有行情 key 时也要能算市值，所以带了虚构的现价
   holdings: [
     { symbol: 'NVDA', qty: 30, costBasis: 92, manualPrice: 184 },
     { symbol: 'AAPL', qty: 20, costBasis: 150, manualPrice: 228 },

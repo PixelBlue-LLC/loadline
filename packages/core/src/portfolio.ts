@@ -4,7 +4,13 @@ import type { Holding, PortfolioView, Position, Quote } from './types';
 const round = (v: number, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
 
 /** 持仓 + 行情 → 每行市值、盈亏、权重。价格优先用行情，其次手动价，最后用成本价兜底。 */
-export function buildPortfolio(holdings: Holding[], quotes: Record<string, Quote>, cash: number): PortfolioView {
+export function buildPortfolio(
+  holdings: Holding[],
+  quotes: Record<string, Quote>,
+  cash: number,
+  /** 代码 → Finnhub 行业 */
+  industries: Record<string, string> = {},
+): PortfolioView {
   const rows = holdings
     .filter((h) => h.symbol && h.qty > 0)
     .map((h) => {
@@ -27,7 +33,7 @@ export function buildPortfolio(holdings: Holding[], quotes: Record<string, Quote
       const dayPct = priceSource === 'quote' && q && q.changePct != null ? q.changePct : null;
       // 由当日涨跌幅反推昨收市值：mv / (1 + pct) 再求差
       const dayPnl = dayPct != null ? marketValue - marketValue / (1 + dayPct / 100) : null;
-      const { sector, theme, isTech } = classify(sym, h.theme);
+      const { sector, theme, isTech } = classify(sym, h.theme, industries[sym]);
       return {
         symbol: sym,
         name: h.name,
@@ -44,6 +50,7 @@ export function buildPortfolio(holdings: Holding[], quotes: Record<string, Quote
         sector,
         isTech,
         weight: 0,
+        ...(h.accounts ? { accounts: h.accounts } : {}),
         high52: q?.high52,
         low52: q?.low52,
       } satisfies Position;

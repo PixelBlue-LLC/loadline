@@ -9,9 +9,22 @@ export interface ImportResult {
   /** 识别到的现金行（如 Schwab 的 Cash & Cash Investments） */
   cash?: number;
   skipped: string[];
+  /** 从文件格式猜出来的券商名，用来预填账户名 */
+  broker?: string;
 }
 
-const SYMBOL_KEYS = ['symbol', 'ticker', '代码', '股票代码', 'instrument'];
+/** 按导出格式猜券商：Schwab 第一行是 "Positions for account ..."，IBKR 用 "Financial Instrument"，Fidelity 有 "Account Name" 列 */
+export function detectBroker(text: string): string | undefined {
+  const head = text.slice(0, 2000);
+  if (/positions for (account|all-accounts)|mkt val \(market value\)/i.test(head)) return 'Schwab';
+  if (/financial instrument|interactive brokers/i.test(head)) return 'IBKR';
+  if (/account number\s*,\s*account name/i.test(head)) return 'Fidelity';
+  if (/robinhood/i.test(head)) return 'Robinhood';
+  if (/webull/i.test(head)) return 'Webull';
+  return undefined;
+}
+
+const SYMBOL_KEYS = ['symbol', 'ticker', 'financial instrument', '代码', '股票代码', 'instrument'];
 const QTY_KEYS = ['qty', 'quantity', 'shares', '数量', '持股数', 'position'];
 const AVG_COST_KEYS = ['average cost', 'avg cost', 'average price', 'avg price', 'cost per share', 'unit cost', '均价', '成本价', '平均成本'];
 const TOTAL_COST_KEYS = ['cost basis', 'total cost', '总成本', '持仓成本'];
@@ -128,7 +141,7 @@ export function parseHoldingsCsv(text: string): ImportResult {
       ...(price != null && price > 0 ? { manualPrice: price } : {}),
     });
   }
-  return { holdings, cash, skipped };
+  return { holdings, cash, skipped, broker: detectBroker(text) };
 }
 
 /** 每行「代码 数量 [每股成本]」，空格、逗号或制表符分隔 */
@@ -151,12 +164,13 @@ export function parseHoldingsText(text: string): ImportResult {
   return { holdings, skipped };
 }
 
-/** 合并：同一代码以新导入的为准 */
+/** 合并：同一账户里的同一代码以新导入的为准，不同账户的同一代码各自保留 */
 export function mergeHoldings(existing: Holding[], incoming: Holding[]): Holding[] {
-  const map = new Map(existing.map((h) => [h.symbol.toUpperCase(), h]));
+  const k = (h: Holding) => `${h.account?.trim() ?? ''}|${h.symbol.toUpperCase()}`;
+  const map = new Map(existing.map((h) => [k(h), h]));
   for (const h of incoming) {
     const sym = h.symbol.toUpperCase();
-    map.set(sym, { ...map.get(sym), ...h, symbol: sym });
+    map.set(k(h), { ...map.get(k(h)), ...h, symbol: sym });
   }
   return [...map.values()];
 }

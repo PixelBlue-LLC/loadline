@@ -8,9 +8,9 @@ export async function refreshMarket(): Promise<void> {
   if (!s.settings.finnhubKey || s.loading) return;
   setState({ loading: true });
   try {
-    const r = await fetchMarket(s.holdings.map((h) => h.symbol), s.settings.finnhubKey);
+    const r = await fetchMarket(s.holdings.map((h) => h.symbol), s.settings.finnhubKey, s.market.industries ?? {});
     setState({
-      market: { quotes: r.quotes, sectors: r.sectors, news: r.news, earnings: r.earnings, errors: r.errors, fetchedAt: new Date().toISOString() },
+      market: { quotes: r.quotes, sectors: r.sectors, news: r.news, earnings: r.earnings, industries: { ...s.market.industries, ...r.industries }, errors: r.errors, fetchedAt: new Date().toISOString() },
       attribution: undefined,
     });
   } catch (e) {

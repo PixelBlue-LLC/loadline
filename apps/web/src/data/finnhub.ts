@@ -42,6 +42,7 @@ async function pool<T, R>(items: T[], size: number, fn: (t: T) => Promise<R>): P
 interface FhQuote { c: number; dp: number | null; pc: number; t: number }
 interface FhMetric { metric?: { '52WeekHigh'?: number; '52WeekLow'?: number } }
 interface FhNews { headline: string; source: string; url: string; datetime: number; summary?: string }
+interface FhProfile { finnhubIndustry?: string; name?: string }
 interface FhEarnings { earningsCalendar?: Array<{ date: string; symbol: string }> }
 
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
@@ -51,10 +52,12 @@ export interface MarketFetch {
   sectors: SectorPerf[];
   news: NewsItem[];
   earnings: Record<string, string>;
+  /** 这次新查到的行业（只查缓存里没有的代码） */
+  industries: Record<string, string>;
   errors: string[];
 }
 
-export async function fetchMarket(symbols: string[], key: string): Promise<MarketFetch> {
+export async function fetchMarket(symbols: string[], key: string, knownIndustries: Record<string, string> = {}): Promise<MarketFetch> {
   const errors = new Set<string>();
   const note = (r: unknown) => {
     if (r instanceof Error) errors.add(r.message);
@@ -111,5 +114,15 @@ export async function fetchMarket(symbols: string[], key: string): Promise<Marke
     note(e);
   }
 
-  return { quotes, sectors, news, earnings, errors: [...errors] };
+  // 行业分类用 Finnhub 的公司资料；ETF 没有，记成空串下次不再查
+  const missing = uniq.filter((s) => !(s in knownIndustries));
+  const industries: Record<string, string> = {};
+  const profRes = await pool(missing, 4, (s) => get<FhProfile>('/stock/profile2', { symbol: s }, key));
+  missing.forEach((s, i) => {
+    const r = profRes[i];
+    if (r instanceof Error) return; // 网络错误下次再试
+    industries[s] = r?.finnhubIndustry ?? '';
+  });
+
+  return { quotes, sectors, news, earnings, industries, errors: [...errors] };
 }
