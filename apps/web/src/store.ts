@@ -38,6 +38,8 @@ export interface AppState {
   chat: ChatMessage[];
   /** 正在刷新行情 */
   loading: boolean;
+  /** 当前持仓是示例数据（虚构） */
+  isSample?: boolean;
 }
 
 const KEY = 'loadline:v1';
@@ -45,13 +47,19 @@ const KEY = 'loadline:v1';
 export const DEFAULT_SETTINGS: Settings = {
   finnhubKey: '',
   anthropicKey: '',
-  aiModel: 'claude-haiku-4-5',
+  aiModel: 'claude-haiku-5-5',
   theme: 'system',
   colorConvention: 'us',
   rules: DEFAULT_RULES,
 };
 
 const EMPTY_MARKET: MarketCache = { quotes: {}, sectors: [], news: [], earnings: {}, errors: [] };
+
+const OLD_DEFAULT_MODELS = ['claude-haiku-4-5'];
+
+function migrateSettings(s: Settings): Settings {
+  return OLD_DEFAULT_MODELS.includes(s.aiModel) ? { ...s, aiModel: DEFAULT_SETTINGS.aiModel } : s;
+}
 
 function load(): AppState {
   const base: AppState = { holdings: [], cash: 0, settings: DEFAULT_SETTINGS, market: EMPTY_MARKET, checklist: {}, chat: [], loading: false };
@@ -62,7 +70,7 @@ function load(): AppState {
     return {
       ...base,
       ...saved,
-      settings: { ...DEFAULT_SETTINGS, ...saved.settings },
+      settings: migrateSettings({ ...DEFAULT_SETTINGS, ...saved.settings }),
       market: { ...EMPTY_MARKET, ...saved.market },
       loading: false,
     };
@@ -125,7 +133,18 @@ export function importBackup(text: string): void {
     checklist: data.checklist ?? {},
     market: EMPTY_MARKET,
     attribution: undefined,
+    isSample: false,
   }));
+}
+
+/** 用示例持仓看效果 */
+export function loadSample() {
+  setState({ holdings: SAMPLE.holdings, cash: SAMPLE.cash, isSample: true, attribution: undefined, chat: [] });
+}
+
+/** 退出示例：清掉示例持仓和由它算出的内容，保留设置和 key */
+export function exitSample() {
+  setState({ holdings: [], cash: 0, isSample: false, attribution: undefined, chat: [], checklist: {} });
 }
 
 export function clearAll() {

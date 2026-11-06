@@ -3,7 +3,7 @@ import { attributionFallback } from 'loadline-core';
 import { refreshMarket, runAttribution } from '../actions';
 import type { Derived } from '../derived';
 import { ageMinutes, signedPct, signedUsd, timeLabel, usd } from '../format';
-import { SAMPLE, setState, type AppState } from '../store';
+import { loadSample, type AppState } from '../store';
 import { Card, ConcRow, HeatGrid, Money, Pct, Tile, tone } from '../ui';
 
 export function Today({ s, d }: { s: AppState; d: Derived }) {
@@ -235,9 +235,7 @@ function Welcome() {
         </a>
         <button
           className="btn"
-          onClick={() => {
-            setState({ holdings: SAMPLE.holdings, cash: SAMPLE.cash });
-          }}
+          onClick={loadSample}
         >
           用示例数据看看
         </button>

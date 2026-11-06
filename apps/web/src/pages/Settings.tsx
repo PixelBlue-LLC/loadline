@@ -154,7 +154,7 @@ export function Settings({ s }: { s: AppState }) {
           </Card>
 
           <div className="notice">
-            {APP_NAME}是开源的研究工具，不是投资建议，不连接券商、不下单，也不收集你的数据。源代码在{' '}
+            {APP_NAME} 是开源的研究工具，不是投资建议，不连接券商、不下单，也不收集你的数据。源代码在{' '}
             <a href={REPO_URL} target="_blank" rel="noreferrer">
               GitHub
             </a>

@@ -8,7 +8,7 @@ import { Market } from './pages/Market';
 import { Options } from './pages/Options';
 import { Settings } from './pages/Settings';
 import { Today } from './pages/Today';
-import { useAppState } from './store';
+import { exitSample, useAppState } from './store';
 
 const TABS = [
   { path: '/', label: '今天' },
@@ -74,6 +74,31 @@ export function App() {
         </span>
       </nav>
       <main className="main">
+        {s.isSample && route !== '/holdings/edit' ? (
+          <div className="sample-bar" role="status">
+            <span>正在看示例数据（虚构持仓）</span>
+            <span className="row" style={{ flexWrap: 'nowrap' }}>
+              <button
+                className="btn small primary"
+                onClick={() => {
+                  exitSample();
+                  location.hash = '#/holdings/edit';
+                }}
+              >
+                录入我的持仓
+              </button>
+              <button
+                className="btn small"
+                onClick={() => {
+                  exitSample();
+                  location.hash = '#/';
+                }}
+              >
+                退出示例
+              </button>
+            </span>
+          </div>
+        ) : null}
         {page}
       </main>
       <nav className="tabbar" aria-label="主导航">

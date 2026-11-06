@@ -136,8 +136,8 @@ type Row = { symbol: string; qty: string; cost: string; price: string; theme: st
 const toRow = (h: Holding): Row => ({ symbol: h.symbol, qty: String(h.qty), cost: String(h.costBasis || ''), price: h.manualPrice ? String(h.manualPrice) : '', theme: h.theme ?? '' });
 
 export function HoldingsEditor({ s }: { s: AppState }) {
-  const [rows, setRows] = useState<Row[]>(() => (s.holdings.length ? s.holdings.map(toRow) : [{ symbol: '', qty: '', cost: '', price: '', theme: '' }]));
-  const [cash, setCash] = useState(s.cash ? String(s.cash) : '');
+  const [rows, setRows] = useState<Row[]>(() => (s.holdings.length && !s.isSample ? s.holdings.map(toRow) : [{ symbol: '', qty: '', cost: '', price: '', theme: '' }]));
+  const [cash, setCash] = useState(s.cash && !s.isSample ? String(s.cash) : '');
   const [paste, setPaste] = useState('');
   const [msg, setMsg] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -162,7 +162,7 @@ export function HoldingsEditor({ s }: { s: AppState }) {
   };
 
   const save = () => {
-    setState({ holdings: rowsToHoldings(rows), cash: Number(cash) || 0, attribution: undefined });
+    setState({ holdings: rowsToHoldings(rows), cash: Number(cash) || 0, attribution: undefined, isSample: false });
     location.hash = '#/';
   };
 

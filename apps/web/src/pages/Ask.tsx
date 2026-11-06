@@ -12,6 +12,10 @@ export function Ask({ s, d }: { s: AppState; d: Derived }) {
 
   if (!s.settings.anthropicKey)
     return (
+      <>
+      <header className="page-head">
+        <span className="title">问 AI</span>
+      </header>
       <Empty title="填写 Anthropic key 后可用">
         <p className="body" style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>
           AI 会根据你的持仓和当天数据回答问题。key 只存在这个浏览器里，请求直接发给 Anthropic，不经过其他服务器。AI 只解释数据，不给买卖建议。
@@ -20,6 +24,7 @@ export function Ask({ s, d }: { s: AppState; d: Derived }) {
           去设置
         </a>
       </Empty>
+      </>
     );
 
   const send = async (q: string) => {

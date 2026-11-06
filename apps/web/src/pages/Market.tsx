@@ -6,6 +6,10 @@ import { Card, Empty } from '../ui';
 export function Market({ s, d }: { s: AppState; d: Derived }) {
   if (!s.settings.finnhubKey)
     return (
+      <>
+      <header className="page-head">
+        <span className="title">市场</span>
+      </header>
       <Empty title="接入行情后可用">
         <p className="body" style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>
           板块涨跌和持仓新闻需要一个行情 key。Finnhub 免费档就够用（每分钟 60 次，限个人非商业使用）。
@@ -14,6 +18,7 @@ export function Market({ s, d }: { s: AppState; d: Derived }) {
           去设置
         </a>
       </Empty>
+      </>
     );
 
   const sectors = d.sectors;
