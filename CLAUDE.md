@@ -1,4 +1,4 @@
-# 投资雷达（工作名）· 开源版
+# Loadline · 开源版
 
 > 进度、卡点、下一步只看 Google Sheets「PixelBlue 排期表」的 Market Compass 页。本文件只写怎么干活。
 > 旧的私有版在 `~/PixelBlue-LLC/MarketCompass`（Python + Schwab，自己用），这里是从零重写的开源版。计划见 Claude Docs「Market Compass 开源重写计划」。
@@ -8,7 +8,7 @@
 - **不给买卖建议或信号。** 只按用户自己设的规则计算和展示；AI 只解释已发生的事实。`packages/core/src/ai.ts` 里的 `violatesAdvicePolicy` 拦截指令性措辞，改 AI 功能时保留这层检查，并在 `insights.test.ts` 里加用例。
 - **不碰用户数据。** 持仓、设置、key 只存在浏览器 localStorage；请求从浏览器直接发给用户自己选的服务商。不加任何分析、追踪、cookie。
 - **不提供、不转发行情数据。** 用户用自己的 key 自己拉。
-- 名字没定（Market Compass 与一款 iOS 应用重名），只在 `apps/web/src/brand.ts` 和 `index.html` 的 `<title>` 里改。
+- 产品名 Loadline（2026-11-06 定，不设中文名）。显示名只在 `apps/web/src/brand.ts` 和 `index.html` 的 `<title>` 里改。npm 上 `@loadline` scope 已被别人占用，内部包名用 `loadline-core` / `loadline-web`，且保持 `private: true`，不要发布到 npm。
 
 ## 结构
 

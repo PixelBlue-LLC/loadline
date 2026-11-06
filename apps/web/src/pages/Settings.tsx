@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { DEFAULT_RULES } from '@compass/core';
+import { DEFAULT_RULES } from 'loadline-core';
 import { refreshMarket } from '../actions';
 import { APP_NAME, REPO_URL } from '../brand';
 import { clearAll, exportBackup, importBackup, updateSettings, type AppState, type ThemePref } from '../store';
@@ -14,7 +14,7 @@ export function Settings({ s }: { s: AppState }) {
     const blob = new Blob([exportBackup(includeKeys)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `compass-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `loadline-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   };

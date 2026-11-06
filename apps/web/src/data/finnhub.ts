@@ -2,7 +2,7 @@
  * Finnhub 适配器：行情、52 周高低、公司新闻、财报日历。
  * 用户自己的 key，直接从浏览器调用；免费档每分钟 60 次，所以并发限制为 4 并顺序排队。
  */
-import { SECTOR_ETFS, type NewsItem, type Quote, type SectorPerf } from '@compass/core';
+import { SECTOR_ETFS, type NewsItem, type Quote, type SectorPerf } from 'loadline-core';
 
 const BASE = 'https://finnhub.io/api/v1';
 

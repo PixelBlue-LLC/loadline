@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { attributionFallback } from '@compass/core';
+import { attributionFallback } from 'loadline-core';
 import { refreshMarket, runAttribution } from '../actions';
 import type { Derived } from '../derived';
 import { ageMinutes, signedPct, signedUsd, timeLabel, usd } from '../format';

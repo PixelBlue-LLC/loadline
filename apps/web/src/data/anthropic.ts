@@ -2,7 +2,7 @@
  * Anthropic 适配器：用用户自己的 key 从浏览器直接调用。
  * 需要 anthropic-dangerous-direct-browser-access 请求头；key 只发给 Anthropic，不经过任何其他服务器。
  */
-import { AI_SYSTEM_PROMPT, violatesAdvicePolicy } from '@compass/core';
+import { AI_SYSTEM_PROMPT, violatesAdvicePolicy } from 'loadline-core';
 
 export interface AiResult {
   text: string;

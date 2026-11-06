@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { mergeHoldings, parseHoldingsCsv, parseHoldingsText, type Holding } from '@compass/core';
+import { mergeHoldings, parseHoldingsCsv, parseHoldingsText, type Holding } from 'loadline-core';
 import type { Derived } from '../derived';
 import { num, signedPct, usd } from '../format';
 import { setState, type AppState } from '../store';

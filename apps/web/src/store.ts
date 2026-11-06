@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { DEFAULT_RULES, type ConcentrationRule, type Holding, type NewsItem, type Quote, type SectorPerf } from '@compass/core';
+import { DEFAULT_RULES, type ConcentrationRule, type Holding, type NewsItem, type Quote, type SectorPerf } from 'loadline-core';
 
 export type ThemePref = 'system' | 'light' | 'dark';
 
@@ -40,7 +40,7 @@ export interface AppState {
   loading: boolean;
 }
 
-const KEY = 'compass:v1';
+const KEY = 'loadline:v1';
 
 export const DEFAULT_SETTINGS: Settings = {
   finnhubKey: '',
@@ -112,12 +112,12 @@ export function useAppState(): AppState {
 export function exportBackup(includeKeys: boolean): string {
   const { holdings, cash, settings, checklist } = state;
   const s = includeKeys ? settings : { ...settings, finnhubKey: '', anthropicKey: '' };
-  return JSON.stringify({ app: 'compass', version: 1, exportedAt: new Date().toISOString(), holdings, cash, settings: s, checklist }, null, 2);
+  return JSON.stringify({ app: 'loadline', version: 1, exportedAt: new Date().toISOString(), holdings, cash, settings: s, checklist }, null, 2);
 }
 
 export function importBackup(text: string): void {
   const data = JSON.parse(text) as Partial<AppState> & { app?: string };
-  if (data.app !== 'compass' || !Array.isArray(data.holdings)) throw new Error('不是有效的备份文件');
+  if (data.app !== 'loadline' || !Array.isArray(data.holdings)) throw new Error('不是有效的备份文件');
   setState((s) => ({
     holdings: data.holdings ?? [],
     cash: typeof data.cash === 'number' ? data.cash : 0,
