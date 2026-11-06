@@ -191,16 +191,29 @@ export function Holdings({ s, d }: { s: AppState; d: Derived }) {
 
 // ---------------- 录入 / 导入 ----------------
 
-type Row = { symbol: string; qty: string; cost: string; account: string; manualPrice?: number; name?: string };
+/**
+ * 一行持仓。成本可以按每股填，也可以按总成本填（券商导出的 Cost Basis 一般是总成本）；
+ * basis 记住用户最后改的是哪一个，保存时以它为准，避免来回换算丢精度。
+ */
+type Row = { symbol: string; qty: string; cost: string; total: string; basis: 'cost' | 'total'; account: string; manualPrice?: number; name?: string };
+const fmt2 = (v: number) => (Number.isFinite(v) && v ? String(Math.round(v * 100) / 100) : '');
 const toRow = (h: Holding): Row => ({
   symbol: h.symbol,
   qty: String(h.qty),
-  cost: h.costBasis ? String(h.costBasis) : '',
+  cost: fmt2(h.costBasis),
+  total: fmt2(h.costBasis * h.qty),
+  basis: 'total',
   account: accountOf(h),
   ...(h.manualPrice ? { manualPrice: h.manualPrice } : {}),
   ...(h.name ? { name: h.name } : {}),
 });
-const blank = (account: string): Row => ({ symbol: '', qty: '', cost: '', account });
+const blank = (account: string): Row => ({ symbol: '', qty: '', cost: '', total: '', basis: 'cost', account });
+
+function rowCostPerShare(r: Row): number {
+  const qty = Number(r.qty);
+  if (r.basis === 'total') return qty > 0 ? (Number(r.total) || 0) / qty : 0;
+  return Number(r.cost) || 0;
+}
 
 function rowsToHoldings(rs: Row[]): Holding[] {
   return rs
@@ -208,7 +221,7 @@ function rowsToHoldings(rs: Row[]): Holding[] {
     .map((r) => ({
       symbol: r.symbol.trim().toUpperCase(),
       qty: Number(r.qty),
-      costBasis: Number(r.cost) || 0,
+      costBasis: rowCostPerShare(r),
       account: r.account,
       ...(r.manualPrice ? { manualPrice: r.manualPrice } : {}),
       ...(r.name ? { name: r.name } : {}),
@@ -242,7 +255,28 @@ export function HoldingsEditor({ s }: { s: AppState }) {
   }, [rows, cash, extraAccounts, acct]);
 
   const visible = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.account === acct);
-  const setCell = (i: number, k: 'symbol' | 'qty' | 'cost', v: string) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  const setCell = (i: number, k: 'symbol' | 'qty' | 'cost' | 'total', v: string) =>
+    setRows((rs) =>
+      rs.map((r, j) => {
+        if (j !== i) return r;
+        const next = { ...r, [k]: v };
+        const qty = Number(next.qty);
+        // 改每股就算总成本，改总成本就算每股；改数量时保持用户上次填的那一个不变
+        if (k === 'cost') return { ...next, basis: 'cost', total: qty > 0 ? fmt2(Number(v) * qty) : next.total };
+        if (k === 'total') return { ...next, basis: 'total', cost: qty > 0 ? fmt2(Number(v) / qty) : next.cost };
+        if (k === 'qty') return next.basis === 'total' ? { ...next, cost: qty > 0 ? fmt2(Number(next.total) / qty) : next.cost } : { ...next, total: fmt2(Number(next.cost) * qty) };
+        return next;
+      }),
+    );
+  const priceOf = (r: Row) => s.market.quotes[r.symbol.trim().toUpperCase()]?.price ?? r.manualPrice;
+  const acctTotals = visible.reduce(
+    (t, { r }) => {
+      const qty = Number(r.qty) || 0;
+      const p = priceOf(r);
+      return { cost: t.cost + rowCostPerShare(r) * qty, mv: t.mv + (p ? p * qty : 0), missing: t.missing || (!p && qty > 0) };
+    },
+    { cost: 0, mv: 0, missing: false },
+  );
 
   const addAccount = () => {
     const name = prompt('账户名（比如 Schwab、IBKR、Fidelity）')?.trim();
@@ -334,6 +368,8 @@ export function HoldingsEditor({ s }: { s: AppState }) {
             <span>代码</span>
             <span>数量</span>
             <span>每股成本</span>
+            <span>总成本</span>
+            <span>市值</span>
             <span />
           </div>
           {visible.map(({ r, i }) => (
@@ -341,12 +377,26 @@ export function HoldingsEditor({ s }: { s: AppState }) {
               <label className="cell"><span className="cell-label">代码</span><input className="input" value={r.symbol} placeholder="AAPL" onChange={(e) => setCell(i, 'symbol', e.target.value)} /></label>
               <label className="cell"><span className="cell-label">数量</span><input className="input" inputMode="decimal" value={r.qty} placeholder="10" onChange={(e) => setCell(i, 'qty', e.target.value)} /></label>
               <label className="cell"><span className="cell-label">每股成本</span><input className="input" inputMode="decimal" value={r.cost} placeholder="150" onChange={(e) => setCell(i, 'cost', e.target.value)} /></label>
+              <label className="cell"><span className="cell-label">总成本</span><input className="input" inputMode="decimal" value={r.total} placeholder="1500" onChange={(e) => setCell(i, 'total', e.target.value)} /></label>
+              <span className="cell mv" title={r.name}>
+                <span className="cell-label">市值</span>
+                <span>{priceOf(r) && Number(r.qty) > 0 ? usd(priceOf(r)! * Number(r.qty), 2) : '—'}</span>
+                {r.name ? <span className="cell-name">{r.name}</span> : null}
+              </span>
               <button className="btn icon small del" aria-label={`删除 ${r.symbol || '这一行'}`} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>
                 ×
               </button>
             </div>
           ))}
           {!visible.length ? <span className="label">「{acct}」还没有持仓。可以手动加，也可以在下面导入。</span> : null}
+          {visible.length ? (
+            <div className="edit-total">
+              「{acct}」合计：总成本 {usd(acctTotals.cost, 2)} · 市值 {acctTotals.mv ? usd(acctTotals.mv, 2) : '—'}
+              {acctTotals.mv ? <> · 浮动盈亏 <Money v={acctTotals.mv - acctTotals.cost} digits={2} /></> : null}
+              {Number(cash[acct]) > 0 ? <> · 加现金共 {usd(acctTotals.mv + Number(cash[acct]), 2)}</> : null}
+              {acctTotals.missing ? <span className="label">（部分没有价格，接入行情后补上）</span> : null}
+            </div>
+          ) : null}
         </div>
         <div className="row">
           <button className="btn small" onClick={() => setRows((rs) => [...rs, blank(acct)])}>

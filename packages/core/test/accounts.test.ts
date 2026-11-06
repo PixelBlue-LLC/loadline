@@ -125,3 +125,20 @@ describe('IBKR 导出 CSV', () => {
     expect(r.broker).toBe('IBKR');
   });
 });
+
+describe('Schwab 导出 CSV（总成本列）', () => {
+  it('Cost Basis 是总成本，按数量换成每股；Description 记成名称', () => {
+    const csv = [
+      '"Positions for account Individual ...999 as of 02:00 PM ET, 2026/01/02"',
+      '',
+      '"Symbol"  , "Description"   , "Qty (Quantity)", "Price"  , "Mkt Val (Market Value)", "Cost Basis", "Asset Type", ',
+      '"ABC"     , "ABC HOLDINGS"  , "2.5"           , "40.00"  , "$100.00"               , "$150.00"   , "Equity"    , ',
+      '"Cash & Cash Investments", "--", "--", "--", "$50.00", "--", "Cash and Money Market", ',
+      '"Positions Total", "", "--", "--", "$150.00", "$150.00", "--", ',
+    ].join('\n');
+    const r = parseHoldingsCsv(csv);
+    expect(r.holdings).toEqual([{ symbol: 'ABC', qty: 2.5, costBasis: 60, manualPrice: 40, name: 'ABC HOLDINGS' }]);
+    expect(r.cash).toBe(50);
+    expect(r.broker).toBe('Schwab');
+  });
+});

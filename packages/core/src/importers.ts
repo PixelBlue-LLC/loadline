@@ -30,6 +30,7 @@ const AVG_COST_KEYS = ['average cost', 'avg cost', 'average price', 'avg price',
 const TOTAL_COST_KEYS = ['cost basis', 'total cost', '总成本', '持仓成本'];
 const PRICE_KEYS = ['price', 'last price', 'last', 'current price', '现价', '最新价'];
 const MV_KEYS = ['market value', 'mkt val', 'value', '市值'];
+const NAME_KEYS = ['description', 'name', 'security name', '名称'];
 
 /** 解析一个金额/数字单元格："$1,234.50"、"(12.3)"、"−5" */
 export function parseNumber(raw: string | undefined): number | null {
@@ -110,6 +111,7 @@ export function parseHoldingsCsv(text: string): ImportResult {
   const cTotal = cAvg >= 0 ? -1 : findCol(headers, TOTAL_COST_KEYS);
   const cPrice = findCol(headers, PRICE_KEYS);
   const cMv = findCol(headers, MV_KEYS);
+  const cName = findCol(headers, NAME_KEYS);
 
   const holdings: Holding[] = [];
   let cash: number | undefined;
@@ -134,11 +136,13 @@ export function parseHoldingsCsv(text: string): ImportResult {
       cost = t != null ? t / qty : null;
     }
     const price = cPrice >= 0 ? parseNumber(cells[cPrice]) : null;
+    const name = cName >= 0 ? (cells[cName] ?? '').trim() : '';
     holdings.push({
       symbol: sym,
       qty,
       costBasis: cost != null && cost > 0 ? Math.round(cost * 10000) / 10000 : (price ?? 0),
       ...(price != null && price > 0 ? { manualPrice: price } : {}),
+      ...(name && name !== '--' ? { name } : {}),
     });
   }
   return { holdings, cash, skipped, broker: detectBroker(text) };
